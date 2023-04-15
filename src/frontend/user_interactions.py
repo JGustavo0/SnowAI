@@ -14,8 +14,9 @@ def get_text():
     Returns:
         (str): The text entered by the user
     """
-    placeholder = "I'm your DATA assistant! Ask me anything about the Crucchbase Basic Company Data ..."
-    input_text = st.text_input("You: ", st.session_state["input"], key="input",
+    
+    placeholder = "How many companies are based in San Franscisco?"
+    input_text = st.text_input("I'm your 🤖 DATA assistant! What do you want to know about the companies summary? 🏢💡", st.session_state["input"], key="input",
                             placeholder=placeholder, 
-                            label_visibility='hidden')
+                            label_visibility='visible')
     return input_text

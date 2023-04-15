@@ -8,12 +8,39 @@ import logging
 import logging.config
 from src.frontend.user_interactions import get_text, initialize_session_variables
 
-
 logging.config.dictConfig(CONFIG.LOG_CONFIG)
 
 logger = logging.getLogger("SnowAI")
 
 initialize_session_variables()
+
+DATABASE_SCHEMAS = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC"]
+
+st.header("❄️ SnowAI - Data Requests")
+st.caption("Powered by Snowpark, Streamlit and chatGPT - For this demo, we are using the [Crunch Company Data Set](https://app.snowflake.com/marketplace/listing/GZSNZ7BXU9/crunchbase-crunchbase-basic-company-data) from Snowflake Marketplace.")
+
+
+st.markdown(
+        """
+        <style>
+        .title {
+            font-size: 100px;
+            color: white !important;
+        }
+        .top-left {
+            position: absolute;
+            top: 300;
+            left: 100;
+        }
+        .css-16idsys p {
+            word-break: break-word;
+            margin-bottom: 0px;
+            font-size: 20px;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
 
 st.cache_resource()
 def load_connection():
@@ -47,37 +74,7 @@ def load_data(snowflake_client, response_list):
     df_pandas = df_snow.to_pandas()  # this requires pandas installed in the Python environment
     return df_pandas.head(50)
 
-def main():
-
-    databases_schemas = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC"]
-
-    # Get Snowflake Session
-    snowflake_client = load_connection()
-
-    # Get database.schema metadata from Snowflake
-    tables_metadata = load_metadata(snowflake_client, databases_schemas)
-
-    # To move for a config file
-    st.title("❄️ SnowAI - Data Requests")
-    st.subheader("Powered by Snowpark, Streamlit and chatGPT")
-    st.markdown(
-        """
-        <style>
-        .title {
-            font-size: 100px;
-            color: white !important;
-        }
-        .top-left {
-            position: absolute;
-            top: 300
-            left: 100;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # Frontend - User input
+def load_interaction():
     input_text = get_text()
     #input_text = st.text_area("What you want to know about the organizations? e.g 'How many companies have in San Franscisco?'")
     logging.info(f"User input: {input_text}")
@@ -98,4 +95,7 @@ def main():
                 st.dataframe(df_pandas)
 
 if __name__ == "__main__":
-    main()
+    snowflake_client = load_connection()
+    # Get database.schema metadata from Snowflake
+    tables_metadata = load_metadata(snowflake_client, DATABASE_SCHEMAS)
+    load_interaction()
