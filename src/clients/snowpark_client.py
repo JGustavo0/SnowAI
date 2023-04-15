@@ -37,12 +37,6 @@ class SnowparkClient:
             "warehouse":config["warehouse"],
             "database":config["database"],
             "schema":config["schema"],
-            # "session_parameters":{
-            #     "QUERY_TAG": f"{config['query_tag']}",
-            # },
-            # "authenticator":"externalbrowser"
-            # if config["environment"] == "DEV"
-            # else "snowflake"
         }).create()
         
     def decode_private_key(self, private_key: str, pk_pass: str = None):
@@ -104,21 +98,19 @@ class SnowparkClient:
         self.logger.info("Snowpark client shutdown started.")
         self.session.close()
         self.logger.info("Snowpark client shutdown complete.")
-        
 
     def get_table_metadata(self, db_schema_list: List[str]):
         """
         Retrieves table and view metadata from the provided databases and schemas.
 
         """
-
-        self.logger.info("Retrieving table and view metadata from the provided databases and schemas.")
+        self.logger.info("Table and view metadata retrieval started.")
         metadata_list = []
 
         for db_schema in db_schema_list:
             try:
                 db, schema = db_schema.split('.')
-                self.logger.debug(f"Retrieving table and view metadata from {db}.{schema}")
+                self.logger.info(f"Retrieving table and view metadata from {db}.{schema}")
 
                 # Retrieve tables and views from the information schema
                 stmt = f"SELECT TABLE_NAME, TABLE_TYPE FROM {db}.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{schema}';"

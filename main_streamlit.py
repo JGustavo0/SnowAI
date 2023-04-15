@@ -6,18 +6,21 @@ from src.configs import CONFIG
 from src.handlers import gpt_conversation
 import logging
 import logging.config
-from src.frontend.user_interactions import get_text
+from src.frontend.user_interactions import get_text, initialize_session_variables
+
 
 logging.config.dictConfig(CONFIG.LOG_CONFIG)
 
 logger = logging.getLogger("SnowAI")
+
+initialize_session_variables()
 
 st.cache_resource()
 def load_connection():
     """
     Load the connection to the Snowflake database.
     """
-    # Snowflake Client
+    logging.info("Loading Snowflake connection")
     snowflake_client = SnowparkClient(config=CONFIG.DATABASE)
     return snowflake_client
 
@@ -26,6 +29,7 @@ def load_metadata(snowflake_client, databases_schemas):
     """
     Load the metadata from the Snowflake database.
     """
+    logging.info("Loading Snowflake metadata")
     tables_metadata = snowflake_client.get_table_metadata(databases_schemas)
     return tables_metadata
 
@@ -43,31 +47,14 @@ def load_data(snowflake_client, response_list):
     df_pandas = df_snow.to_pandas()  # this requires pandas installed in the Python environment
     return df_pandas.head(50)
 
-# if "input" not in st.session_state:
-#     st.session_state["input"] = ""
-
-# def get_text():
-#     """
-#     Get the user input text.
-
-#     Returns:
-#         (str): The text entered by the user
-#     """
-#     input_text = st.text_input("You: ", st.session_state["input"], key="input",
-#                             placeholder="Your DATA assistant here! Ask me anything about the Organizations ...", 
-#                             label_visibility='hidden')
-#     return input_text
-
 def main():
 
     databases_schemas = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC"]
 
     # Get Snowflake Session
-    logging.info("Loading Snowflake connection")
     snowflake_client = load_connection()
 
     # Get database.schema metadata from Snowflake
-    logging.info("Loading Snowflake metadata")
     tables_metadata = load_metadata(snowflake_client, databases_schemas)
 
     # To move for a config file
@@ -89,17 +76,14 @@ def main():
         """,
         unsafe_allow_html=True
     )
-    # the image should apear in the top left corner of the page
-    #st.markdown(f'<img src="https://companieslogo.com/img/orig/SNOW-35164165.png?t=1634190631" class="top-left" width=30>',
-    #unsafe_allow_html=True)
 
     # Frontend - User input
-    #input_text = get_text()
-    input_text = st.text_area("What you want to know about the organizations? e.g 'How many companies have in San Franscisco?'")
+    input_text = get_text()
+    #input_text = st.text_area("What you want to know about the organizations? e.g 'How many companies have in San Franscisco?'")
     logging.info(f"User input: {input_text}")
 
     # Submit button for Snowflake query
-    if st.button("Give me that report!"):
+    if st.button("Submit request"):
         response_list = load_gpt_completion(input_text, tables_metadata)
 
         # Check if is a valid query
