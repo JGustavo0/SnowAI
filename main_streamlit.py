@@ -6,13 +6,15 @@ from src.configs import CONFIG
 from src.handlers import gpt_conversation
 import logging
 import logging.config
-from src.frontend.user_interactions import get_text
+from src.frontend.user_interactions import get_text, initialize_session_variables
 
 logging.config.dictConfig(CONFIG.LOG_CONFIG)
 
 logger = logging.getLogger("SnowAI")
 
-st.cache_resource()
+initialize_session_variables()
+
+#st.cache_resource()
 def load_connection():
     """
     Load the connection to the Snowflake database.
@@ -43,21 +45,6 @@ def load_data(snowflake_client, response_list):
     df_pandas = df_snow.to_pandas()  # this requires pandas installed in the Python environment
     return df_pandas.head(50)
 
-# if "input" not in st.session_state:
-#     st.session_state["input"] = ""
-
-# def get_text():
-#     """
-#     Get the user input text.
-
-#     Returns:
-#         (str): The text entered by the user
-#     """
-#     input_text = st.text_input("You: ", st.session_state["input"], key="input",
-#                             placeholder="Your DATA assistant here! Ask me anything about the Organizations ...", 
-#                             label_visibility='hidden')
-#     return input_text
-
 def main():
 
     databases_schemas = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC"]
@@ -70,9 +57,9 @@ def main():
     logging.info("Loading Snowflake metadata")
     tables_metadata = load_metadata(snowflake_client, databases_schemas)
 
-    # To move for a config file
-    st.title("❄️ SnowAI - Data Requests")
-    st.subheader("Powered by Snowpark, Streamlit and chatGPT")
+    # To move setPageConfig to the top of the file
+    st.header("❄️ SnowAI - Data Requests")
+    st.caption("Powered by Snowpark, Streamlit and chatGPT - For this demo, we are using the [Crunch Company Data Set](https://app.snowflake.com/marketplace/listing/GZSNZ7BXU9/crunchbase-crunchbase-basic-company-data) from Snowflake Marketplace.")
     st.markdown(
         """
         <style>
@@ -82,20 +69,21 @@ def main():
         }
         .top-left {
             position: absolute;
-            top: 300
+            top: 300;
             left: 100;
         }
+        .css-16idsys p {
+            word-break: break-word;
+            margin-bottom: 0px;
+            font-size: 20px;
+            }
         </style>
         """,
         unsafe_allow_html=True
     )
-    # the image should apear in the top left corner of the page
-    #st.markdown(f'<img src="https://companieslogo.com/img/orig/SNOW-35164165.png?t=1634190631" class="top-left" width=30>',
-    #unsafe_allow_html=True)
 
     # Frontend - User input
-    #input_text = get_text()
-    input_text = st.text_area("What you want to know about the organizations? e.g 'How many companies have in San Franscisco?'")
+    input_text = get_text()
     logging.info(f"User input: {input_text}")
 
     # Submit button for Snowflake query
