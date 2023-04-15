@@ -9,7 +9,7 @@ LOG_CONFIG = {
             "stream": "ext://sys.stdout",
         },
     },
-    "root": {"level": os.getenv("DEBUG_LEVEL", "INFO"), "handlers": ["bunyan"]},
+    "root": {"level": os.getenv("DEBUG_LEVEL", "DEBUG"), "handlers": ["bunyan"]},
     "version": 1,
 }
 
