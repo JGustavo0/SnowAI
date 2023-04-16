@@ -116,7 +116,6 @@ if __name__ == "__main__":
     tables_metadata = get_table_metadata(DATABASE_SCHEMAS)
 
     input_text = get_text()
-    #input_text = st.text_area("What you want to know about the organizations? e.g 'How many companies have in San Franscisco?'")
     logging.info(f"User input: {input_text}")
 
     # Get GPT-3 completion
@@ -125,11 +124,9 @@ if __name__ == "__main__":
 
     if st.button("Submit request"):
         df_snow = run_query(query)
-        #df_pandas = df_snow.to_pandas(50)  # this requires pandas installed in the Python environment
-        
-        # Use columns to display the three dataframes side-by-side along with their headers
-        col1, _ = st.columns([3, 1])
-        with st.container():
-            with col1:
-                st.subheader(response_list[1])
-                st.dataframe(df_snow)
+        if query != 'SELECT 1':
+            st.subheader(response_list[1])
+            st.dataframe(df_snow)
+        else:
+            st.subheader(response_list[1])
+
