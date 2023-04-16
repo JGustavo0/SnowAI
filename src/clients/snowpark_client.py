@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives import serialization
 from snowflake.snowpark.session import Session
 from typing import Dict, List
 import pandas as pd
+import streamlit as st
 
 class SnowparkClient:
     """
@@ -37,6 +38,7 @@ class SnowparkClient:
             "warehouse":config["warehouse"],
             "database":config["database"],
             "schema":config["schema"],
+            "client_session_keep_alive":config["client_session_keep_alive"],
         }).create()
         
     def decode_private_key(self, private_key: str, pk_pass: str = None):
@@ -70,27 +72,6 @@ class SnowparkClient:
 
         return pkb
 
-    def execute_statement(self, stmt):
-        """
-        Executes a SQL statement.
-        Parameters
-        ----------
-        stmt: str
-            SQL statement to be executed.
-        Returns
-        ----------
-        Execution results (as a DataFrame).
-        """
-        # Execute statement
-        try:
-            self.logger.debug(f"Executing statement: {stmt}")
-            return self.session.sql(stmt).collect()
-
-        # Handle errors
-        except Exception as e:
-            self.logger.error(f"Failed to execute statement: {e}.")
-            raise Exception("Could not execute statement successfully.")
-
     def close(self):
         """
         Shutdown Snowpark client session.
@@ -99,44 +80,3 @@ class SnowparkClient:
         self.session.close()
         self.logger.info("Snowpark client shutdown complete.")
 
-    def get_table_metadata(self, db_schema_list: List[str]):
-        """
-        Retrieves table and view metadata from the provided databases and schemas.
-
-        """
-        self.logger.info("Table and view metadata retrieval started.")
-        metadata_list = []
-
-        for db_schema in db_schema_list:
-            try:
-                db, schema = db_schema.split('.')
-                self.logger.info(f"Retrieving table and view metadata from {db}.{schema}")
-
-                # Retrieve tables and views from the information schema
-                stmt = f"SELECT TABLE_NAME, TABLE_TYPE FROM {db}.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{schema}';"
-                objects = self.execute_statement(stmt)
-
-                # Convert the list to a DataFrame
-                objects_df = pd.DataFrame(objects, columns=['table_name', 'table_type'])
-                #self.logger.debug(f"Objects in {db}.{schema}:\n{objects_df.to_string()}")
-
-                for _, obj in objects_df.iterrows():
-                    object_name = obj['table_name']
-                    object_type = obj['table_type']
-
-                    # Retrieve columns and data types for tables and views
-                    column_stmt = f"SELECT COLUMN_NAME, DATA_TYPE FROM {db}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{object_name}';"
-                    columns = self.execute_statement(column_stmt)
-
-                    columns_df = pd.DataFrame(columns, columns=['column_name', 'data_type'])
-                    columns_str = columns_df.to_string(index=False)
-                    metadata_list.append(f"{db}.{schema}.{object_name} ({object_type})\n{columns_str}\n")
-
-            except Exception as e:
-                self.logger.error(f"Failed to retrieve table and view metadata from {db_schema}: {e}")
-                self.logger.exception("Exception occurred")
-                raise Exception(f"Could not retrieve table and view metadata from {db_schema} successfully.")
-
-        metadata_str = '\n'.join(metadata_list)
-        self.logger.info("Table and view metadata retrieval complete.")
-        return metadata_str
