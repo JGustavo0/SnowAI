@@ -98,17 +98,24 @@ def get_table_metadata(db_schema_list: List[str]):
             object_type = obj['TABLE_TYPE']
 
             # Retrieve columns and data types for tables and views
-            column_stmt = f"SELECT COLUMN_NAME, DATA_TYPE FROM {db}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{object_name}' ORDER BY COLUMN_NAME, DATA_TYPE;"
+            column_stmt = f"SELECT COLUMN_NAME, DATA_TYPE, COMMENT FROM {db}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{object_name}' ORDER BY COLUMN_NAME, DATA_TYPE;"
             columns = run_query(column_stmt)
 
-            columns_df = pd.DataFrame(columns, columns=['column_name', 'data_type'])
-            columns_str = columns_df.to_string(index=False)
-            metadata_list.append(f"{db}.{schema}.{object_name} ({object_type})\n{columns_str}\n")
+            if columns.empty:
+                logging.warning(f"{db}.{schema}.{object_name} has no columns, skipping.")
+                continue
 
-    metadata_str = '\n'.join(metadata_list)
+            column_names = columns['COLUMN_NAME'].to_list()
+            data_types = columns['DATA_TYPE'].to_list()
+            column_comments = columns['COMMENT'].to_list()
+
+            column_info = ", ".join([f"{name} ({data_type}) - {comment}" for name, data_type, comment in zip(column_names, data_types, column_comments)])
+
+            metadata_list.append(f"{db}.{schema}.{object_name}: {column_info}")
+
+    metadata_str = '\n'.join(metadata_list).replace(' - None', '')
     logging.info("Table and view metadata retrieval complete.")
     return metadata_str
-
 
 if __name__ == "__main__":
     
