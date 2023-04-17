@@ -36,7 +36,7 @@ def gpt_generate_response(query_text: str, tables_metadata: dict) -> list:
     :param tables_metadata: The metadata of tables to be used for query generation.
     :return: A list containing the generated query and title.
     """
-    ERROR_MESSAGE = "Ups 🤖! Time to call the 🕵️‍♂️ Data Analyst to save the day! 💪"
+    ERROR_MESSAGE = """Ups 🤖! Sorry, no results! \n Time to call the 🕵️‍♂️ Data Analyst to save the day! 💪"""
 
     try:
         # Set the API key

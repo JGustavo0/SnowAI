@@ -25,6 +25,7 @@ DATABASE = {
     "schema": os.getenv("SNOW_SCHEMA", "PUBLIC"),
     "query_tag": os.getenv("SNOW_QUERY_TAG", "SnowAI"),
     "environment": os.getenv("SNOW_ENVIRONMENT", "DEV"),
+    "client_session_keep_alive": os.getenv("SNOW_CLIENT_SESSION_KEEP_ALIVE", False),
 }
 
 CHATGPT = {

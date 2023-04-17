@@ -16,7 +16,7 @@ def get_text():
     """
     
     placeholder = "How many companies are based in San Franscisco?"
-    input_text = st.text_input("I'm your 🤖 DATA assistant! What do you want to know about the companies summary? 🏢💡", st.session_state["input"], key="input",
+    input_text = st.text_input("Hi!I'm your 🤖 DATA assistant! Ask me basic information on organizations 🏢💡", st.session_state["input"], key="input",
                             placeholder=placeholder, 
                             label_visibility='visible')
     return input_text

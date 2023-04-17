@@ -25,8 +25,8 @@ No need to know SQL or Data Sources schema 🧳.
 - Validate SQL query syntax before sending it to Snowflake.
 - Train GPT to recommend the best chart to use.
 - Implement support for custom LLMs (Large Language Models).
-- Multiple export options for sharing insights
-- Integrations
-- Connectors
+- Multiple export options for sharing insights.
+- Integrations.
+- Connectors.
 
 And much more! 💡

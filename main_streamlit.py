@@ -1,12 +1,18 @@
-import streamlit as st
-from typing import Dict, List, Tuple
-import pandas as pd
-from src.clients.snowpark_client import SnowparkClient
-from src.configs import CONFIG
-from src.handlers import gpt_conversation
 import logging
 import logging.config
+
+from typing import Dict, List, Tuple
+
+import pandas as pd
+import snowflake.connector.errors
+
+import streamlit as st
+
+from src.clients.snowpark_client import SnowparkClient
+from src.configs import CONFIG
 from src.frontend.user_interactions import get_text, initialize_session_variables
+from src.handlers import gpt_conversation
+
 
 logging.config.dictConfig(CONFIG.LOG_CONFIG)
 
@@ -42,8 +48,8 @@ st.markdown(
         unsafe_allow_html=True
     )
 
-st.cache_resource()
-def load_connection():
+@st.cache_resource
+def innit_connection():
     """
     Load the connection to the Snowflake database.
     """
@@ -51,51 +57,76 @@ def load_connection():
     snowflake_client = SnowparkClient(config=CONFIG.DATABASE)
     return snowflake_client
 
-st.cache_data(ttl=3600)
-def load_metadata(snowflake_client, databases_schemas):
+conn = innit_connection()
+
+@st.cache_data(ttl=600)
+def run_query(stmt):
+    try:
+        logging.debug(f"Executing statement: {stmt}")
+        return conn.session.sql(stmt).to_pandas()
+
+    except snowflake.connector.errors.ProgrammingError as e:
+        logging.error(f"Failed to execute statement: {e}")
+        raise snowflake.connector.errors.ProgrammingError("Could not execute statement successfully.")
+
+def get_table_metadata(db_schema_list: List[str]):
     """
-    Load the metadata from the Snowflake database.
+    Retrieves table and view metadata from the provided databases and schemas.
+
     """
-    logging.info("Loading Snowflake metadata")
-    tables_metadata = snowflake_client.get_table_metadata(databases_schemas)
-    return tables_metadata
+    if not db_schema_list:
+        raise ValueError("db_schema_list cannot be empty")
 
-def load_gpt_completion(query_text, tables_metadata):
-    """
-    Load the GPT-3 completion.
-    """
-    response_list = gpt_conversation.gpt_generate_response(query_text, tables_metadata)
-    return response_list
+    metadata_list = []
 
-st.cache_data(ttl=3600)
-def load_data(snowflake_client, response_list):
-    logging.error(f"Executing the following query: {response_list[0]}")
-    df_snow = snowflake_client.session.sql(response_list[0])
-    df_pandas = df_snow.to_pandas()  # this requires pandas installed in the Python environment
-    return df_pandas.head(50)
+    for db_schema in db_schema_list:
+        try:
+            db, schema = db_schema.split('.')
+        except ValueError:
+            raise ValueError(f"Invalid format for db_schema: {db_schema}. Expected format is <database_name>.<schema_name>")
 
-def load_interaction():
-    input_text = get_text()
-    #input_text = st.text_area("What you want to know about the organizations? e.g 'How many companies have in San Franscisco?'")
-    logging.info(f"User input: {input_text}")
+        logging.info(f"Retrieving table and view metadata from {db}.{schema}")
 
-    # Submit button for Snowflake query
-    if st.button("Submit request"):
-        response_list = load_gpt_completion(input_text, tables_metadata)
+        # Retrieve tables and views from the information schema
+        stmt = f"SELECT TABLE_NAME, TABLE_TYPE FROM {db}.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '{schema}' ORDER BY TABLE_NAME, TABLE_TYPE ;"
+        objects = run_query(stmt)
 
-        # Check if is a valid query
+        logging.debug(f"Objects in {db}.{schema}:\n{objects.to_string()}")
 
-        df_pandas = load_data(snowflake_client, response_list)
-    
-            # Use columns to display the three dataframes side-by-side along with their headers
-        col1, _ = st.columns([3, 1])
-        with st.container():
-            with col1:
-                st.subheader(response_list[1])
-                st.dataframe(df_pandas)
+        for _, obj in objects.iterrows():
+            object_name = obj['TABLE_NAME']
+            object_type = obj['TABLE_TYPE']
+
+            # Retrieve columns and data types for tables and views
+            column_stmt = f"SELECT COLUMN_NAME, DATA_TYPE FROM {db}.INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = '{schema}' AND TABLE_NAME = '{object_name}' ORDER BY COLUMN_NAME, DATA_TYPE;"
+            columns = run_query(column_stmt)
+
+            columns_df = pd.DataFrame(columns, columns=['column_name', 'data_type'])
+            columns_str = columns_df.to_string(index=False)
+            metadata_list.append(f"{db}.{schema}.{object_name} ({object_type})\n{columns_str}\n")
+
+    metadata_str = '\n'.join(metadata_list)
+    logging.info("Table and view metadata retrieval complete.")
+    return metadata_str
+
 
 if __name__ == "__main__":
-    snowflake_client = load_connection()
-    # Get database.schema metadata from Snowflake
-    tables_metadata = load_metadata(snowflake_client, DATABASE_SCHEMAS)
-    load_interaction()
+    
+    ### Get database.schema metadata from Snowflake
+    tables_metadata = get_table_metadata(DATABASE_SCHEMAS)
+
+    input_text = get_text()
+    logging.info(f"User input: {input_text}")
+
+    # Get GPT-3 completion
+    response_list = gpt_conversation.gpt_generate_response(input_text, tables_metadata)
+    query = response_list[0]
+
+    if st.button("Submit request"):
+        df_snow = run_query(query)
+        if query != 'SELECT 1':
+            st.subheader(response_list[1])
+            st.dataframe(df_snow)
+        else:
+            st.subheader(response_list[1])
+
