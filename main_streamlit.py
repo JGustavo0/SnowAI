@@ -22,7 +22,7 @@ initialize_session_variables()
 
 DATABASE_SCHEMAS = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC"]
 
-st.header("❄️ SnowAI - Data Requests")
+st.header("❄️ SnowAI - Automated Data Requests")
 st.caption("Powered by Snowpark, Streamlit and chatGPT - For this demo, we are using the [Crunch Company Data Set](https://app.snowflake.com/marketplace/listing/GZSNZ7BXU9/crunchbase-crunchbase-basic-company-data) from Snowflake Marketplace.")
 
 
@@ -115,12 +115,12 @@ def get_table_metadata(db_schema_list: List[str]):
 
     metadata_str = '\n'.join(metadata_list).replace(' - None', '')
     logging.info("Table and view metadata retrieval complete.")
-    return metadata_str
+    return metadata_str, columns
 
 if __name__ == "__main__":
     
     ### Get database.schema metadata from Snowflake
-    tables_metadata = get_table_metadata(DATABASE_SCHEMAS)
+    tables_metadata, columns = get_table_metadata(DATABASE_SCHEMAS)
 
     input_text = get_text()
     logging.info(f"User input: {input_text}")
@@ -135,5 +135,10 @@ if __name__ == "__main__":
             st.subheader(response_list[1])
             st.dataframe(df_snow)
         else:
-            st.subheader(response_list[1])
+            st.write("Ups 🤖! Sorry, no results! \n Note that I have access to the tables/views in following database:")
+            for schema in DATABASE_SCHEMAS:
+                st.code(schema)
+            st.dataframe(columns)
 
+        if st.button("Clear and try other request"):
+            st.experimental_rerun()
