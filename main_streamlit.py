@@ -6,6 +6,8 @@ from typing import Dict, List, Tuple
 import pandas as pd
 import snowflake.connector.errors
 
+import os
+
 import streamlit as st
 
 from src.clients.snowpark_client import SnowparkClient
@@ -20,9 +22,20 @@ logger = logging.getLogger("SnowAI")
 
 initialize_session_variables()
 
-DATABASE_SCHEMAS = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC"]
+DATABASE_SCHEMAS = os.getenv("DATABASE_SCHEMAS", "CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC,STREAMLIT_DB.PUBLIC").split(",")
 
-st.header("❄️ SnowAI - Data Requests")
+st.set_page_config(
+     page_title="SnowAI - Automated Data Requests",
+     page_icon="☃️",
+     layout="centered",
+     initial_sidebar_state="auto",
+     menu_items={
+         'Get Help': 'https://app.snowflake.com/marketplace/listing/GZSNZ7BXU9/crunchbase-crunchbase-basic-company-data',
+         'About': "This app uses [chatGPT](https://chatgpt.com) to generate responses to user requests. The app is built using [Streamlit](https://streamlit.io) and [Snowpark](https://docs.snowflake.com/en/user-guide/snowpark-overview.html).",
+     }
+)
+
+st.header("❄️ SnowAI - Automated Data Requests")
 st.caption("Powered by Snowpark, Streamlit and chatGPT - For this demo, we are using the [Crunch Company Data Set](https://app.snowflake.com/marketplace/listing/GZSNZ7BXU9/crunchbase-crunchbase-basic-company-data) from Snowflake Marketplace.")
 
 
@@ -111,7 +124,7 @@ def get_table_metadata(db_schema_list: List[str]):
 
             column_info = ", ".join([f"{name} ({data_type}) - {comment}" for name, data_type, comment in zip(column_names, data_types, column_comments)])
 
-            metadata_list.append(f"{db}.{schema}.{object_name}: {column_info}")
+            metadata_list.append(f" Database.Table: {db}.{schema}.{object_name}: {column_info}")
 
     metadata_str = '\n'.join(metadata_list).replace(' - None', '')
     logging.info("Table and view metadata retrieval complete.")
@@ -135,5 +148,8 @@ if __name__ == "__main__":
             st.subheader(response_list[1])
             st.dataframe(df_snow)
         else:
-            st.subheader(response_list[1])
+            st.write("Ups 🤖! Sorry, no results! \n Note that I have access to the tables/views in following database(s):")
+            st.code(tables_metadata)
 
+        if st.button("Clear and try other request"):
+            st.experimental_rerun()
