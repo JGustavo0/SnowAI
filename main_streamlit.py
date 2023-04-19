@@ -6,6 +6,8 @@ from typing import Dict, List, Tuple
 import pandas as pd
 import snowflake.connector.errors
 
+import os
+
 import streamlit as st
 
 from src.clients.snowpark_client import SnowparkClient
@@ -20,7 +22,7 @@ logger = logging.getLogger("SnowAI")
 
 initialize_session_variables()
 
-DATABASE_SCHEMAS = ["CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC", "STREAMLIT_DB.PUBLIC"]
+DATABASE_SCHEMAS = os.getenv("DATABASE_SCHEMAS", "CRUNCHBASE_BASIC_COMPANY_DATA.PUBLIC,STREAMLIT_DB.PUBLIC").split(",")
 
 st.set_page_config(
      page_title="SnowAI - Automated Data Requests",
